@@ -1,6 +1,6 @@
 apiVersion: v2
 name: ecpaas-helm-snort-ids
-version: 1.0.0 # chart
+version: 1.0.1 # chart
 appVersion: 1.0.0
 description: Installs snort ids on ecpaas.
 type: application
