@@ -1,0 +1,151 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "snortsft.fullname" . }}
+  labels:
+    {{- include "snortsft.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+
+  selector:
+    matchLabels:
+      {{- include "snortsft.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "snortsft.selectorLabels" . | nindent 8 }}
+    spec:
+      shareProcessNamespace: true
+
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+
+      securityContext:
+        runAsUser: 0
+
+      volumes:
+      - name: pipe-tmp
+        emptyDir:
+          sizeLimit: 10Mi
+
+      {{ if .Values.logPvc.name -}}
+      - name: log-pv
+        persistentVolumeClaim:
+          claimName: log-pvc
+      {{- end }}
+
+      - name: cm-refn
+        configMap:
+          name: {{ tpl (.Values.cfgCm.refn) . }}
+
+      - name: cm-clsn
+        configMap:
+          name: {{ tpl (.Values.cfgCm.clsn) . }}
+
+      - name: cm-gmap
+        configMap:
+          name: {{ tpl (.Values.cfgCm.gmap) . }}
+
+      - name: cm-sntc
+        configMap:
+          name: {{ tpl (.Values.cfgCm.sntc) . }}
+
+      {{- if .Values.dev.enabled }}
+      - name: cm-local-rules
+        configMap:
+          name: {{ .Release.Name }}-cm-lrules
+      {{- end }}
+
+      containers:
+        - name: {{ .Chart.Name }}-sft
+          image: "{{ .Values.global.repoPrefix | default "" }}{{ .Values.image.sft.repository }}:{{ .Values.image.sft.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.sft.pullPolicy }}
+
+          volumeMounts:
+          - name: pipe-tmp
+            mountPath: /pipe-tmp
+
+          command:
+            - /bin/sh
+            - '-c'
+            - |
+              /bin/sh <<'EOF'
+              mkfifo /pipe-tmp/mypip
+              sflowtool -p {{ .Values.service.port }} -t > /pipe-tmp/mypip
+              EOF
+
+        - name: {{ .Chart.Name }}-snort
+          image: "{{ .Values.global.repoPrefix | default "" }}{{ .Values.image.snort.repository }}:{{ .Values.image.snort.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.snort.pullPolicy }}
+
+          volumeMounts:
+          - name: pipe-tmp
+            mountPath: /pipe-tmp
+
+          {{ if .Values.logPvc.name -}}
+          - name: log-pv
+            mountPath: {{ .Values.logPvc.logPath }}
+          {{- end }}
+
+          - name: cm-refn
+            mountPath: /etc/snort/reference.config
+            subPath: reference.config
+
+          - name: cm-clsn
+            mountPath: /etc/snort/classification.config
+            subPath: classification.config
+
+          - name: cm-gmap
+            mountPath: /etc/snort/gen-msg.map
+            subPath: gen-msg.map
+
+          - name: cm-sntc
+            mountPath: /etc/snort/snort.conf
+            subPath: snort.conf
+
+          {{- if .Values.dev.enabled }}
+          - name: cm-local-rules
+            mountPath: /etc/snort/rules/local.rules
+            subPath: local.rules
+          {{- end }}
+
+          command:
+            - /bin/sh
+            - '-c'
+            - |
+              /bin/sh <<'EOF'
+            {{- if .Values.cmdstr }}
+              {{ tpl (.Values.cmdstr) . | nindent 14 }}
+            {{- else }}
+              until [ -p /pipe-tmp/mypip ]
+              do
+                sleep 5
+              done
+              snort -v -c /etc/snort/snort.conf -r /pipe-tmp/mypip
+            {{- end }}
+              EOF
+
+          ports:
+            - name: {{ .Values.service.name }}
+              containerPort: {{ .Values.service.port }}
+              protocol: {{ .Values.service.protocol }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

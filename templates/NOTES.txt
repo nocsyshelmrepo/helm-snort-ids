@@ -1,0 +1,5 @@
+
+To uninstall/delete the {{.Release.Name}} resources:
+
+helm uninstall {{.Release.Name}} -n {{.Release.Namespace}}
+

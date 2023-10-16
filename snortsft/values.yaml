@@ -1,0 +1,66 @@
+# Default values for snortsft.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+global: {}
+
+replicaCount: 1
+
+image:
+  sft:
+    repository: sflow/sflowtool
+    pullPolicy: IfNotPresent
+    # Overrides the image tag whose default is the chart appVersion.
+    tag: "latest"
+  snort:
+    repository: vimagick/snort
+    pullPolicy: IfNotPresent
+    # Overrides the image tag whose default is the chart appVersion.
+    tag: "latest"
+
+#cmdstr: |
+#  sleep infinity
+
+logPvc:
+  name: "log-pvc"
+  logPath: "/var/log/snort"
+
+cfgCm:
+  refn: "{{ .Release.Name }}-cm-refn"
+  clsn: "{{ .Release.Name }}-cm-clsn"
+  gmap: "{{ .Release.Name }}-cm-gmap"
+  sntc: "{{ .Release.Name }}-cm-sntc"
+
+# use localRules to test
+dev:
+  enabled: true
+
+# add rules here to test
+localRules: |
+  alert tcp any any -> any any (msg:"TCP Packet Detected";sid:1000010;rev:1;)
+
+service:
+  name: sflow
+  type: NodePort
+  protocol: UDP
+  port: 6343
+  nodeport: 31343
+
+resources:
+  # We usually recommend not to specify default resources and to leave this as a conscious
+  # choice for the user. This also increases chances charts run on environments with little
+  # resources, such as Minikube. If you do want to specify resources, uncomment the following
+  # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 500m
+    memory: 512Mi
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+

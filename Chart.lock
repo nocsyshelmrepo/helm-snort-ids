@@ -1,0 +1,15 @@
+dependencies:
+- name: snortsft
+  repository: file://snortsft
+  version: 0.1.0
+- name: barnyard2
+  repository: file://barnyard2
+  version: 0.1.0
+- name: mysql
+  repository: https://charts.bitnami.com/bitnami
+  version: 9.12.3
+- name: snorby
+  repository: file://snorby
+  version: 0.1.0
+digest: sha256:d6c04e966f8238e616b9c07ce8fbf96895e5ad7af6dad4a76d65e0c88df74e89
+generated: "2023-10-04T01:20:05.031586048Z"

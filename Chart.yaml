@@ -1,0 +1,30 @@
+apiVersion: v2
+name: ecpaas-helm-snort-ids
+version: 1.0.0 # chart
+appVersion: 1.0.0
+description: Installs snort ids on ecpaas.
+type: application
+keywords:
+  - snort
+
+dependencies:
+  - name: snortsft
+    repository: "file://snortsft"
+    version: "0.1.0"
+    condition: snortsft.enabled
+
+  - name: barnyard2
+    repository: "file://barnyard2"
+    version: "0.1.0"
+    condition: barnyard2.enabled
+
+  - name: mysql
+    repository: "https://charts.bitnami.com/bitnami"
+    version: "9.12.3"
+    condition: mysql.enabled
+
+  - name: snorby
+    repository: "file://snorby"
+    version: "0.1.0"
+    condition: snorby.enabled
+

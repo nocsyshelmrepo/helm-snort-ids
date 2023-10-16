@@ -1,0 +1,23 @@
+{{- range $key, $value := .Files }}
+{{- if hasPrefix "snort/" $key }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  {{- if contains "reference.config" $key }}
+  name: {{ $.Release.Name }}-cm-refn
+  {{- else if contains "classification.config" $key }}
+  name: {{ $.Release.Name }}-cm-clsn
+  {{- else if contains "gen-msg.map" $key }}
+  name: {{ $.Release.Name }}-cm-gmap
+  {{- else if contains "sid-msg.map" $key }}
+  name: {{ $.Release.Name }}-cm-smap
+  {{- else if contains "snort.conf" $key }}
+  name: {{ $.Release.Name }}-cm-sntc
+  {{- end }}
+  namespace: {{ $.Release.Namespace }}
+data:
+{{ tpl ($.Files.Glob $key).AsConfig $ | indent 2 }}
+{{- end }}
+{{- end }}
+

@@ -1,0 +1,113 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "barnyard2.fullname" . }}
+  labels:
+    {{- include "barnyard2.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+
+  selector:
+    matchLabels:
+      {{- include "barnyard2.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      {{- with .Values.podAnnotations -}}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "barnyard2.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+
+      volumes:
+      - name: cm-by2cfg
+        configMap:
+          name: {{ .Release.Name }}-cm-by2cfg
+
+      {{ if .Values.logPvc.name -}}
+      - name: log-pv
+        persistentVolumeClaim:
+          claimName: log-pvc
+      {{- end }}
+
+      - name: cm-refn
+        configMap:
+          name: {{ tpl (.Values.cfgCm.refn) . }}
+
+      - name: cm-clsn
+        configMap:
+          name: {{ tpl (.Values.cfgCm.clsn) . }}
+
+      - name: cm-smap
+        configMap:
+          name: {{ tpl (.Values.cfgCm.smap) . }}
+
+      - name: cm-gmap
+        configMap:
+          name: {{ tpl (.Values.cfgCm.gmap) . }}
+
+      containers:
+        - name: {{ .Chart.Name }}-by2
+          image: "{{ .Values.global.repoPrefix | default "" }}{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+
+          volumeMounts:
+          - name: cm-by2cfg
+            mountPath: /etc/barnyard2/barnyard2.conf
+            subPath: barnyard2.conf
+
+          - name: cm-refn
+            mountPath: /etc/snort/reference.config
+            subPath: reference.config
+
+          - name: cm-clsn
+            mountPath: /etc/snort/classification.config
+            subPath: classification.config
+
+          - name: cm-smap
+            mountPath: /etc/snort/sid-msg.map
+            subPath: sid-msg.map
+
+          - name: cm-gmap
+            mountPath: /etc/snort/gen-msg.map
+            subPath: gen-msg.map
+
+          {{ if .Values.logPvc.name -}}
+          - name: log-pv
+            mountPath: {{ .Values.logPvc.logPath }}
+          {{- end }}
+
+          command:
+            - /bin/sh
+            - '-c'
+            - |
+              /bin/sh <<'EOF'
+            {{- if .Values.cmdstr }}
+              {{ tpl (.Values.cmdstr) . | nindent 14 }}
+            {{- else }}
+              echo "Starting barnyard2..."
+              /usr/local/bin/barnyard2 -c /etc/barnyard2/barnyard2.conf \
+              -d {{ .Values.logPvc.logPath }} -f snortu2
+            {{- end }}
+              EOF
+
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

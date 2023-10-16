@@ -1,0 +1,56 @@
+# Default values for barnyard2.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+global: {}
+
+replicaCount: 1
+
+image:
+  repository: toulet/docker-barnyard2
+  pullPolicy: IfNotPresent
+  # Overrides the image tag whose default is the chart appVersion.
+  tag: "latest"
+
+#cmdstr: |
+#  sleep infinity
+
+logPvc:
+  name: "log-pv"
+  logPath: "/var/log/snort"
+
+cfgCm:
+  refn: "{{ .Release.Name }}-cm-refn"
+  clsn: "{{ .Release.Name }}-cm-clsn"
+  smap: "{{ .Release.Name }}-cm-smap"
+  gmap: "{{ .Release.Name }}-cm-gmap"
+
+dbenv:
+  host: "{{ .Release.Name }}-mysql.{{ .Release.Namespace }}"
+  port: "3306"
+  username: "root"
+  password: "test"
+  dbname: "snorby"
+  sensorname: "IDS"
+
+conf:
+  path: "/etc/snort"
+
+resources:
+  # We usually recommend not to specify default resources and to leave this as a conscious
+  # choice for the user. This also increases chances charts run on environments with little
+  # resources, such as Minikube. If you do want to specify resources, uncomment the following
+  # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 500m
+    memory: 512Mi
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+

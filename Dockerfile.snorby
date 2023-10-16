@@ -1,0 +1,5 @@
+FROM polinux/snorby:latest
+
+RUN rpm --rebuilddb && yum update -y nss curl libcurl
+
+

@@ -1,0 +1,15 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-cm-by2cfg
+  namespace: {{ .Release.Namespace }}
+data:
+  barnyard2.conf: |-
+    config reference_file:      {{ .Values.conf.path }}/reference.config
+    config classification_file: {{ .Values.conf.path }}/classification.config
+    config gen_file:            {{ .Values.conf.path }}/gen-msg.map
+    config sid_file:            {{ .Values.conf.path }}/sid-msg.map
+    input unified2
+    output alert_fast: stdout
+    output database: log, mysql, user={{ .Values.dbenv.username }} password={{ .Values.dbenv.password }} dbname={{ .Values.dbenv.dbname }} host={{ tpl (.Values.dbenv.host) . }} port={{ .Values.dbenv.port}} sensor_name={{ .Values.dbenv.sensorname }}

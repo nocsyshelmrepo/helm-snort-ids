@@ -1,0 +1,68 @@
+# Default values for helm-snort-ids
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+global:
+  repoPrefix: "ecpaas-dockerhub.ddns.net/"
+
+logPvc:
+  name: "log-pvc"
+
+snortsft:
+  enabled: true
+  logPvc: 
+    name: "log-pvc"
+
+barnyard2:
+  enabled: true
+  cmdstr: |
+    while ! mysqlshow -h {{ .Release.Name }}-mysql.{{ .Release.Namespace }} \
+      -u {{ .Values.dbenv.username }} -p{{ .Values.dbenv.password }} {{ .Values.dbenv.dbname }} >/dev/null ; do
+      echo "Wait for mysql db to be ready"
+      sleep 1
+    done
+    sleep 5
+    /usr/local/bin/barnyard2 -c /etc/barnyard2/barnyard2.conf \
+    -d {{ .Values.logPvc.logPath }} -f snortu2
+
+  logPvc: 
+    name: "log-pvc"
+
+  dbenv:
+    host: "{{ .Release.Name }}-mysql.{{ .Release.Namespace }}"
+
+mysql:
+  enabled: true
+  auth:
+    rootPassword: "test"
+
+  startupProbe:
+    enabled: true
+    initialDelaySeconds: 30
+    periodSeconds: 10
+    timeoutSeconds: 1
+    failureThreshold: 15
+    successThreshold: 1
+
+snorby:
+  enabled: true
+  image:
+    repository: ecpaas/snorby
+
+  cmdstr: |
+    while ! mysqladmin ping -h "{{ .Release.Name }}-mysql.{{ .Release.Namespace }}" --silent; do
+      echo "Wait for mysql to be up"
+      sleep 1
+    done
+    /bootstrap.sh
+
+# postinst job to add cspc
+postinst:
+  enabled: false
+
+## Hyperkube image to use when cleaning up
+##
+hyperkubeImage:
+  repository: k8s.gcr.io/hyperkube
+  tag: v1.12.1
+  pullPolicy: IfNotPresent
